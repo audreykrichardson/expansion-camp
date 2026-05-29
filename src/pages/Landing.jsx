@@ -5,12 +5,20 @@ export default function Landing() {
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <span className="text-xl font-bold text-emerald-700">Expansion Camp</span>
-        <Link
-          to="/signup"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-        >
-          Start your camp
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/login"
+            className="text-sm font-medium text-gray-700 hover:text-emerald-700"
+          >
+            Log in
+          </Link>
+          <Link
+            to="/signup"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            Start your camp
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-20 text-center">
