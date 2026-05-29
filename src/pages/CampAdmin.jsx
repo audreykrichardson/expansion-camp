@@ -10,23 +10,38 @@ export default function CampAdmin() {
   const { session, user, loading: authLoading } = useAuth()
 
   const [camp, setCamp] = useState(null)
+  const [camperCount, setCamperCount] = useState(null)
   const [campLoading, setCampLoading] = useState(true)
 
-  // Fetch the camp once we know the user is logged in. RLS handles security
-  // automatically: if the user doesn't own this camp, the query returns no
-  // rows — there's no way to leak someone else's data.
+  // Fetch the camp + a count of registered campers. RLS keeps everything
+  // safe: another user querying the same slug just won't see their campers.
   useEffect(() => {
     if (!session) return
+    let cancelled = false
     setCampLoading(true)
-    supabase
-      .from('camps')
-      .select('id, slug, name, created_at')
-      .eq('slug', campSlug)
-      .maybeSingle()
-      .then(({ data }) => {
-        setCamp(data)
-        setCampLoading(false)
-      })
+    ;(async () => {
+      const { data: campRow } = await supabase
+        .from('camps')
+        .select('id, slug, name, created_at')
+        .eq('slug', campSlug)
+        .maybeSingle()
+
+      if (cancelled) return
+      setCamp(campRow)
+
+      if (campRow) {
+        const { count } = await supabase
+          .from('campers')
+          .select('*', { count: 'exact', head: true })
+          .eq('camp_id', campRow.id)
+        if (!cancelled) setCamperCount(count ?? 0)
+      }
+      if (!cancelled) setCampLoading(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [campSlug, session])
 
   async function handleSignOut() {
@@ -95,7 +110,20 @@ export default function CampAdmin() {
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {['Campers', 'Counselors', 'Payments'].map((card) => (
+          {/* Campers card is live — clicks through to the roster. */}
+          <Link
+            to={`/${camp.slug}/admin/campers`}
+            className="rounded-xl border border-gray-200 bg-white p-6 text-center transition hover:border-emerald-400 hover:shadow-sm"
+          >
+            <div className="text-sm font-medium text-gray-500">Campers</div>
+            <div className="mt-1 text-3xl font-bold text-emerald-600">
+              {camperCount ?? '—'}
+            </div>
+            <div className="mt-1 text-xs text-gray-400">View roster &rarr;</div>
+          </Link>
+
+          {/* Placeholders — wired up in later phases. */}
+          {['Counselors', 'Payments'].map((card) => (
             <div
               key={card}
               className="rounded-xl border border-gray-200 bg-white p-6 text-center"
@@ -105,9 +133,13 @@ export default function CampAdmin() {
             </div>
           ))}
         </div>
-        <p className="mt-8 text-sm text-gray-400">
-          Real data lands here in Phase 3 (camper registration + payments).
-        </p>
+
+        <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <span className="font-semibold">Share your registration link:</span>{' '}
+          <span className="font-mono">
+            {window.location.host}/{camp.slug}/register
+          </span>
+        </div>
       </main>
     </div>
   )
