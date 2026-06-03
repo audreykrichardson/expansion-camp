@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 
+// Format whatever the user typed into (555) 123-4567 as they go.
+// Works by stripping to digits and rebuilding, so backspace + paste behave.
+function formatPhone(input) {
+  const digits = input.replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return `(${digits}`
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
 // Public registration form. Anyone — even not signed in — can submit
 // this. RLS only allows the insert if camp_id refers to a real camp.
 export default function CampRegister() {
@@ -120,18 +130,18 @@ export default function CampRegister() {
           <Section title="About your child">
             <Field label="First name *" value={form.first_name} onChange={(v) => updateField('first_name', v)} />
             <Field label="Last name *" value={form.last_name} onChange={(v) => updateField('last_name', v)} />
-            <Field label="Date of birth" type="date" value={form.date_of_birth} onChange={(v) => updateField('date_of_birth', v)} />
+            <DateOfBirthField value={form.date_of_birth} onChange={(v) => updateField('date_of_birth', v)} />
           </Section>
 
           <Section title="Parent / guardian">
             <Field label="Your name *" value={form.parent_name} onChange={(v) => updateField('parent_name', v)} />
             <Field label="Email *" type="email" value={form.parent_email} onChange={(v) => updateField('parent_email', v)} />
-            <Field label="Phone" type="tel" value={form.parent_phone} onChange={(v) => updateField('parent_phone', v)} />
+            <Field label="Phone" type="tel" value={form.parent_phone} onChange={(v) => updateField('parent_phone', v)} format={formatPhone} placeholder="(555) 123-4567" />
           </Section>
 
           <Section title="Emergency contact">
             <Field label="Name" value={form.emergency_contact_name} onChange={(v) => updateField('emergency_contact_name', v)} />
-            <Field label="Phone" type="tel" value={form.emergency_contact_phone} onChange={(v) => updateField('emergency_contact_phone', v)} />
+            <Field label="Phone" type="tel" value={form.emergency_contact_phone} onChange={(v) => updateField('emergency_contact_phone', v)} format={formatPhone} placeholder="(555) 123-4567" />
           </Section>
 
           <Section title="Anything else?">
@@ -174,14 +184,79 @@ function Section({ title, children }) {
   )
 }
 
-function Field({ label, value, onChange, type = 'text' }) {
+// Three dropdowns — month, day, year — that combine into a YYYY-MM-DD
+// string for the database. Smoother than the native date picker.
+function DateOfBirthField({ value, onChange }) {
+  const parts = value ? value.split('-') : ['', '', '']
+  const [year, setYear] = useState(parts[0])
+  const [month, setMonth] = useState(parts[1])
+  const [day, setDay] = useState(parts[2])
+
+  function update(y, m, d) {
+    setYear(y); setMonth(m); setDay(d)
+    onChange(y && m && d ? `${y}-${m}-${d}` : '')
+  }
+
+  const currentYear = new Date().getFullYear()
+  const years = Array.from(
+    { length: currentYear - 1950 + 1 },
+    (_, i) => String(currentYear - i),
+  )
+
+  const months = [
+    ['01', 'January'], ['02', 'February'], ['03', 'March'],
+    ['04', 'April'], ['05', 'May'], ['06', 'June'],
+    ['07', 'July'], ['08', 'August'], ['09', 'September'],
+    ['10', 'October'], ['11', 'November'], ['12', 'December'],
+  ]
+
+  // Cap days at the real length of the picked month (28/29/30/31).
+  const dayCount = year && month
+    ? new Date(Number(year), Number(month), 0).getDate()
+    : 31
+  const days = Array.from({ length: dayCount }, (_, i) =>
+    String(i + 1).padStart(2, '0'),
+  )
+
+  const selectClass =
+    'rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500'
+
+  return (
+    <div className="sm:col-span-2">
+      <label className="block text-sm font-medium text-gray-700">Date of birth</label>
+      <div className="mt-1 grid grid-cols-3 gap-2">
+        <select value={month} onChange={(e) => update(year, e.target.value, day)} className={selectClass}>
+          <option value="">Month</option>
+          {months.map(([v, label]) => (
+            <option key={v} value={v}>{label}</option>
+          ))}
+        </select>
+        <select value={day} onChange={(e) => update(year, month, e.target.value)} className={selectClass}>
+          <option value="">Day</option>
+          {days.map((d) => (
+            <option key={d} value={d}>{Number(d)}</option>
+          ))}
+        </select>
+        <select value={year} onChange={(e) => update(e.target.value, month, day)} className={selectClass}>
+          <option value="">Year</option>
+          {years.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, value, onChange, type = 'text', format, placeholder }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700">{label}</label>
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        onChange={(e) => onChange(format ? format(e.target.value) : e.target.value)}
         className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
       />
     </div>
