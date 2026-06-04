@@ -38,7 +38,7 @@ export default function CampRegister() {
   useEffect(() => {
     supabase
       .from('camps')
-      .select('id, slug, name')
+      .select('id, slug, name, primary_color')
       .eq('slug', campSlug)
       .maybeSingle()
       .then(({ data }) => {
@@ -165,7 +165,8 @@ export default function CampRegister() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: camp.primary_color || '#059669' }}
+            className="w-full rounded-lg px-4 py-3 font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? 'Registering…' : 'Register'}
           </button>

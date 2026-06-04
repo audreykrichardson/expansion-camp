@@ -6,6 +6,7 @@ import CampHome from './pages/CampHome.jsx'
 import CampRegister from './pages/CampRegister.jsx'
 import CampAdmin from './pages/CampAdmin.jsx'
 import CampAdminCampers from './pages/CampAdminCampers.jsx'
+import CampAdminSettings from './pages/CampAdminSettings.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
       <Route path="/:campSlug/register" element={<CampRegister />} />
       <Route path="/:campSlug/admin" element={<CampAdmin />} />
       <Route path="/:campSlug/admin/campers" element={<CampAdminCampers />} />
+      <Route path="/:campSlug/admin/settings" element={<CampAdminSettings />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

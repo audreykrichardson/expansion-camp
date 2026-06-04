@@ -13,7 +13,7 @@ export default function CampHome() {
     setLoading(true)
     supabase
       .from('camps')
-      .select('id, slug, name, created_at')
+      .select('id, slug, name, tagline, primary_color, created_at')
       .eq('slug', campSlug)
       .maybeSingle()
       .then(({ data }) => {
@@ -40,19 +40,24 @@ export default function CampHome() {
     )
   }
 
+  const color = camp.primary_color || '#059669'
+
   return (
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <p className="text-sm uppercase tracking-wide text-emerald-600">Summer camp</p>
+        <p className="text-sm uppercase tracking-wide" style={{ color }}>
+          Summer camp
+        </p>
         <h1 className="mt-2 text-4xl font-extrabold text-gray-900 sm:text-5xl">
           {camp.name}
         </h1>
-        <p className="mt-4 text-gray-600">
-          Register your child for this summer's camp.
-        </p>
+        {camp.tagline && (
+          <p className="mt-4 text-lg text-gray-600">{camp.tagline}</p>
+        )}
         <Link
           to={`/${camp.slug}/register`}
-          className="mt-8 inline-block rounded-lg bg-emerald-600 px-6 py-3 font-semibold text-white hover:bg-emerald-700"
+          style={{ backgroundColor: color }}
+          className="mt-8 inline-block rounded-lg px-6 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
         >
           Register your child
         </Link>

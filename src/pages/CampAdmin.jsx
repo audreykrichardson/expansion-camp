@@ -89,6 +89,12 @@ export default function CampAdmin() {
             View camp page &rarr;
           </Link>
           <div className="flex items-center gap-4">
+            <Link
+              to={`/${camp.slug}/admin/settings`}
+              className="text-sm font-medium text-gray-700 hover:text-emerald-700"
+            >
+              Settings
+            </Link>
             <span className="text-sm text-gray-500">{user.email}</span>
             <button
               type="button"
