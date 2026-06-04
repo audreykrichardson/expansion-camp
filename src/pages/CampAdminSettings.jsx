@@ -3,6 +3,49 @@ import { Link, Navigate, useLocation, useParams, useNavigate } from 'react-route
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/useAuth.js'
 
+// Shrink a user-picked image to a sensible max dimension *in the browser*
+// before uploading. Why: phone photos are 3-8 MB; the logo only ever
+// displays at ~128px, so anything over ~600px is wasted bytes.
+// Returns either the original file (if it's already small or an SVG/vector)
+// or a new compressed File.
+async function resizeImage(file, maxDim = 600, quality = 0.9) {
+  // SVGs are vector — already small, scale infinitely. Don't touch.
+  if (file.type === 'image/svg+xml') return file
+
+  const isPng = file.type === 'image/png'
+  const url = URL.createObjectURL(file)
+
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = reject
+      i.src = url
+    })
+
+    // Already small enough — skip the round-trip.
+    if (img.width <= maxDim && img.height <= maxDim && file.size < 300 * 1024) {
+      return file
+    }
+
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+    const w = Math.round(img.width * scale)
+    const h = Math.round(img.height * scale)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+
+    const mime = isPng ? 'image/png' : 'image/jpeg'
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, mime, quality))
+    const newName = file.name.replace(/\.[^.]+$/, isPng ? '.png' : '.jpg')
+    return new File([blob], newName, { type: mime })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 // Settings page where a camp owner edits branding (name, tagline, color).
 // RLS guards the UPDATE — only the owner can change their own camp.
 export default function CampAdminSettings() {
@@ -52,21 +95,31 @@ export default function CampAdminSettings() {
     if (!file) return
     setLogoError(null)
 
-    if (file.size > 2 * 1024 * 1024) {
-      setLogoError('Logo must be under 2 MB.')
+    // Safety net — even raw files this big are almost certainly the user
+    // trying to upload a video by accident. The resize below shrinks
+    // anything reasonable down to ~80 KB regardless of input size.
+    if (file.size > 20 * 1024 * 1024) {
+      setLogoError('File is too large (max 20 MB).')
       return
     }
 
     setUploadingLogo(true)
 
-    // Path: <slug>/<timestamp>.<ext>. Timestamp avoids stale-image issues
-    // when the browser caches the old logo at the same URL.
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+    let processed
+    try {
+      processed = await resizeImage(file)
+    } catch {
+      setUploadingLogo(false)
+      setLogoError("Couldn't process this image. Try a different file.")
+      return
+    }
+
+    const ext = processed.name.split('.').pop()?.toLowerCase() || 'png'
     const path = `${camp.slug}/${Date.now()}.${ext}`
 
     const { error: uploadError } = await supabase.storage
       .from('camp-logos')
-      .upload(path, file, { contentType: file.type })
+      .upload(path, processed, { contentType: processed.type })
 
     if (uploadError) {
       setUploadingLogo(false)
@@ -188,7 +241,8 @@ export default function CampAdminSettings() {
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <label className="block text-sm font-medium text-gray-700">Logo</label>
             <p className="mt-1 text-xs text-gray-500">
-              Image shown above your camp name on the public page. Max 2 MB.
+              Image shown above your camp name on the public page. Any size works
+              &mdash; we'll shrink it automatically.
             </p>
             <p className="mt-1 text-xs text-gray-400">
               Tip: PNG or SVG with a transparent background looks best.
