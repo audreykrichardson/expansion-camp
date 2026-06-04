@@ -13,7 +13,7 @@ export default function CampHome() {
     setLoading(true)
     supabase
       .from('camps')
-      .select('id, slug, name, tagline, primary_color, created_at')
+      .select('id, slug, name, tagline, primary_color, logo_url, created_at')
       .eq('slug', campSlug)
       .maybeSingle()
       .then(({ data }) => {
@@ -45,6 +45,13 @@ export default function CampHome() {
   return (
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+        {camp.logo_url && (
+          <img
+            src={camp.logo_url}
+            alt={`${camp.name} logo`}
+            className="mx-auto mb-6 max-h-32 w-auto max-w-xs object-contain"
+          />
+        )}
         <p className="text-sm uppercase tracking-wide" style={{ color }}>
           Summer camp
         </p>

@@ -18,17 +18,21 @@ export default function CampAdminSettings() {
   const [name, setName] = useState('')
   const [tagline, setTagline] = useState('')
   const [primaryColor, setPrimaryColor] = useState('#059669')
+  const [logoUrl, setLogoUrl] = useState(null)
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState(null)
+
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [logoError, setLogoError] = useState(null)
 
   useEffect(() => {
     if (!session) return
     setLoading(true)
     supabase
       .from('camps')
-      .select('id, slug, name, tagline, primary_color')
+      .select('id, slug, name, tagline, primary_color, logo_url')
       .eq('slug', campSlug)
       .maybeSingle()
       .then(({ data }) => {
@@ -37,10 +41,71 @@ export default function CampAdminSettings() {
           setName(data.name ?? '')
           setTagline(data.tagline ?? '')
           setPrimaryColor(data.primary_color ?? '#059669')
+          setLogoUrl(data.logo_url ?? null)
         }
         setLoading(false)
       })
   }, [campSlug, session])
+
+  async function handleLogoFile(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setLogoError(null)
+
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError('Logo must be under 2 MB.')
+      return
+    }
+
+    setUploadingLogo(true)
+
+    // Path: <slug>/<timestamp>.<ext>. Timestamp avoids stale-image issues
+    // when the browser caches the old logo at the same URL.
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+    const path = `${camp.slug}/${Date.now()}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('camp-logos')
+      .upload(path, file, { contentType: file.type })
+
+    if (uploadError) {
+      setUploadingLogo(false)
+      setLogoError(uploadError.message)
+      return
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('camp-logos')
+      .getPublicUrl(path)
+    const publicUrl = publicUrlData.publicUrl
+
+    // Save the new URL to the camp row.
+    const { error: updateError } = await supabase
+      .from('camps')
+      .update({ logo_url: publicUrl })
+      .eq('id', camp.id)
+
+    setUploadingLogo(false)
+    if (updateError) {
+      setLogoError(updateError.message)
+      return
+    }
+    setLogoUrl(publicUrl)
+    event.target.value = '' // let them upload the same file again later
+  }
+
+  async function handleRemoveLogo() {
+    setLogoError(null)
+    const { error: updateError } = await supabase
+      .from('camps')
+      .update({ logo_url: null })
+      .eq('id', camp.id)
+    if (updateError) {
+      setLogoError(updateError.message)
+      return
+    }
+    setLogoUrl(null)
+  }
 
   async function handleSave(event) {
     event.preventDefault()
@@ -118,6 +183,64 @@ export default function CampAdminSettings() {
               maxLength={120}
               className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <label className="block text-sm font-medium text-gray-700">Logo</label>
+            <p className="mt-1 text-xs text-gray-500">
+              Image shown above your camp name on the public page. Max 2 MB.
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              Tip: PNG or SVG with a transparent background looks best.
+            </p>
+
+            {logoUrl ? (
+              <div className="mt-3 flex items-center gap-4">
+                <div className="flex h-20 w-32 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-1">
+                  <img
+                    src={logoUrl}
+                    alt="Camp logo"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="cursor-pointer rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Replace
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoFile}
+                      disabled={uploadingLogo}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="mt-3 flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-sm font-medium text-gray-500 hover:border-emerald-400 hover:bg-emerald-50">
+                {uploadingLogo ? 'Uploading…' : 'Click to upload a logo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFile}
+                  disabled={uploadingLogo}
+                  className="hidden"
+                />
+              </label>
+            )}
+
+            {logoError && (
+              <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                {logoError}
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-6">
