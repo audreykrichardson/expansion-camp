@@ -29,8 +29,9 @@ export default function Login() {
 
     // Where to go next?
     //   1. If they were trying to reach a specific page, send them there.
-    //   2. Otherwise look up their camp and go to its admin dashboard.
-    //   3. Fallback: go home.
+    //   2. If they own a camp, go to its admin (owner takes precedence).
+    //   3. If they're a counselor somewhere, go to that counselor dashboard.
+    //   4. Fallback: go home.
     const intended = location.state?.from
     if (intended) {
       navigate(intended, { replace: true })
@@ -45,9 +46,21 @@ export default function Login() {
 
     if (camps && camps.length > 0) {
       navigate(`/${camps[0].slug}/admin`, { replace: true })
-    } else {
-      navigate('/', { replace: true })
+      return
     }
+
+    const { data: counselorRows } = await supabase
+      .from('counselors')
+      .select('camp_id, camps(slug)')
+      .eq('user_id', data.user.id)
+      .limit(1)
+
+    if (counselorRows && counselorRows.length > 0 && counselorRows[0].camps) {
+      navigate(`/${counselorRows[0].camps.slug}/counselor`, { replace: true })
+      return
+    }
+
+    navigate('/', { replace: true })
   }
 
   return (

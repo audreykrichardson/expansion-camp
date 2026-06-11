@@ -11,6 +11,7 @@ export default function CampAdmin() {
 
   const [camp, setCamp] = useState(null)
   const [camperCount, setCamperCount] = useState(null)
+  const [counselorCount, setCounselorCount] = useState(null)
   const [campLoading, setCampLoading] = useState(true)
 
   // Fetch the camp + a count of registered campers. RLS keeps everything
@@ -30,11 +31,20 @@ export default function CampAdmin() {
       setCamp(campRow)
 
       if (campRow) {
-        const { count } = await supabase
-          .from('campers')
-          .select('*', { count: 'exact', head: true })
-          .eq('camp_id', campRow.id)
-        if (!cancelled) setCamperCount(count ?? 0)
+        const [{ count: camperC }, { count: counselorC }] = await Promise.all([
+          supabase
+            .from('campers')
+            .select('*', { count: 'exact', head: true })
+            .eq('camp_id', campRow.id),
+          supabase
+            .from('counselors')
+            .select('*', { count: 'exact', head: true })
+            .eq('camp_id', campRow.id),
+        ])
+        if (!cancelled) {
+          setCamperCount(camperC ?? 0)
+          setCounselorCount(counselorC ?? 0)
+        }
       }
       if (!cancelled) setCampLoading(false)
     })()
@@ -128,16 +138,23 @@ export default function CampAdmin() {
             <div className="mt-1 text-xs text-gray-400">View roster &rarr;</div>
           </Link>
 
-          {/* Placeholders — wired up in later phases. */}
-          {['Counselors', 'Payments'].map((card) => (
-            <div
-              key={card}
-              className="rounded-xl border border-gray-200 bg-white p-6 text-center"
-            >
-              <div className="text-sm font-medium text-gray-500">{card}</div>
-              <div className="mt-1 text-3xl font-bold text-gray-300">—</div>
+          {/* Counselors card is live. */}
+          <Link
+            to={`/${camp.slug}/admin/counselors`}
+            className="rounded-xl border border-gray-200 bg-white p-6 text-center transition hover:border-emerald-400 hover:shadow-sm"
+          >
+            <div className="text-sm font-medium text-gray-500">Counselors</div>
+            <div className="mt-1 text-3xl font-bold text-emerald-600">
+              {counselorCount ?? '—'}
             </div>
-          ))}
+            <div className="mt-1 text-xs text-gray-400">Manage staff &rarr;</div>
+          </Link>
+
+          {/* Payments — Phase 3B placeholder. */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 text-center">
+            <div className="text-sm font-medium text-gray-500">Payments</div>
+            <div className="mt-1 text-3xl font-bold text-gray-300">—</div>
+          </div>
         </div>
 
         <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
