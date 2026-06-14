@@ -119,16 +119,24 @@ export default function CounselorJoin() {
         {isOwner ? (
           // 1. The camp's owner stumbled onto their own invite link.
           <div className="mt-8 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">
-            You're the owner of <span className="font-semibold">{invite.camp_name}</span>.
-            You can't be a counselor at your own camp. Share this link with the person
-            you're inviting instead.
-            <div className="mt-4">
+            You're signed in as the owner of{' '}
+            <span className="font-semibold">{invite.camp_name}</span>. You can't be a
+            counselor at your own camp. Share this link with the person you're inviting,
+            or sign out below if you want to accept the invite with a different account.
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 to={`/${invite.camp_slug}/admin`}
                 className="font-semibold text-amber-700 hover:underline"
               >
                 Back to admin
               </Link>
+              <button
+                type="button"
+                onClick={() => supabase.auth.signOut()}
+                className="font-semibold text-amber-700 hover:underline"
+              >
+                Sign out
+              </button>
             </div>
           </div>
         ) : session ? (
