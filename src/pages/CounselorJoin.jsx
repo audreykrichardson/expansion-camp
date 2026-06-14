@@ -95,9 +95,10 @@ export default function CounselorJoin() {
   if (!invite) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Invite link is invalid</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Invite link already used</h1>
         <p className="mt-2 text-gray-600">
-          This link may have expired or already been used. Ask the camp owner to send you a new one.
+          This invite has already been claimed by someone. Each invite link can only be
+          used once. Ask the camp owner to send you a new one.
         </p>
         <Link to="/" className="mt-6 text-emerald-700 hover:underline">Go home</Link>
       </div>
