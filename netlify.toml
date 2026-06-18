@@ -1,0 +1,12 @@
+# Netlify build config.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback: every URL that doesn't match a built file falls back to
+# index.html so React Router can handle it on the client. Without this,
+# refreshing on /test-camp/admin would 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
