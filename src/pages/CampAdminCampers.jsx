@@ -13,6 +13,8 @@ export default function CampAdminCampers() {
 
   const [camp, setCamp] = useState(null)
   const [campers, setCampers] = useState([])
+  // Counselors are used to populate the assignment dropdown per camper.
+  const [counselors, setCounselors] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -31,18 +33,30 @@ export default function CampAdminCampers() {
 
       if (!campRow) {
         setCampers([])
+        setCounselors([])
         setLoading(false)
         return
       }
 
-      const { data: rows } = await supabase
-        .from('campers')
-        .select('*')
-        .eq('camp_id', campRow.id)
-        .order('created_at', { ascending: false })
+      const [{ data: camperRows }, { data: counselorRows }] = await Promise.all([
+        supabase
+          .from('campers')
+          .select('*')
+          .eq('camp_id', campRow.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('counselors')
+          .select('id, name, role')
+          // Only claimed counselors show up in the dropdown — no point in
+          // "assigning" a pending invite.
+          .not('user_id', 'is', null)
+          .eq('camp_id', campRow.id)
+          .order('name'),
+      ])
 
       if (cancelled) return
-      setCampers(rows ?? [])
+      setCampers(camperRows ?? [])
+      setCounselors(counselorRows ?? [])
       setLoading(false)
     })()
 
@@ -50,6 +64,18 @@ export default function CampAdminCampers() {
       cancelled = true
     }
   }, [campSlug, session])
+
+  // Update the local list optimistically so the dropdown reflects the choice
+  // instantly, then persist.
+  async function handleAssign(camperId, counselorId) {
+    setCampers((prev) =>
+      prev.map((c) => (c.id === camperId ? { ...c, counselor_id: counselorId || null } : c)),
+    )
+    await supabase
+      .from('campers')
+      .update({ counselor_id: counselorId || null })
+      .eq('id', camperId)
+  }
 
   if (authLoading) {
     return <div className="p-12 text-center text-gray-400">Loading…</div>
@@ -74,7 +100,7 @@ export default function CampAdminCampers() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link
             to={`/${camp.slug}/admin`}
             className="text-sm text-emerald-700 hover:underline"
@@ -87,7 +113,7 @@ export default function CampAdminCampers() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-12">
+      <main className="mx-auto max-w-6xl px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900">Campers</h1>
         <p className="mt-1 text-sm text-gray-500">
           {campers.length} registered for {camp.name}.
@@ -112,6 +138,7 @@ export default function CampAdminCampers() {
                   <th className="px-4 py-3">DOB</th>
                   <th className="px-4 py-3">Parent</th>
                   <th className="px-4 py-3">Contact</th>
+                  <th className="px-4 py-3">Counselor</th>
                   <th className="px-4 py-3">Registered</th>
                 </tr>
               </thead>
@@ -126,6 +153,24 @@ export default function CampAdminCampers() {
                     <td className="px-4 py-3 text-gray-600">
                       <div>{c.parent_email}</div>
                       {c.parent_phone && <div className="text-xs">{c.parent_phone}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {counselors.length === 0 ? (
+                        <span className="text-xs text-gray-400">No counselors yet</span>
+                      ) : (
+                        <select
+                          value={c.counselor_id ?? ''}
+                          onChange={(e) => handleAssign(c.id, e.target.value)}
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          <option value="">— Unassigned —</option>
+                          {counselors.map((co) => (
+                            <option key={co.id} value={co.id}>
+                              {co.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-500">
                       {new Date(c.created_at).toLocaleDateString()}
