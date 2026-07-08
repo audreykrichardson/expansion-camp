@@ -65,16 +65,28 @@ export default function CampAdminCampers() {
     }
   }, [campSlug, session])
 
+  const [assignError, setAssignError] = useState(null)
+
   // Update the local list optimistically so the dropdown reflects the choice
-  // instantly, then persist.
+  // instantly, then persist. If the save fails, revert and surface the error
+  // so we don't silently show fake state.
   async function handleAssign(camperId, counselorId) {
-    setCampers((prev) =>
-      prev.map((c) => (c.id === camperId ? { ...c, counselor_id: counselorId || null } : c)),
+    const prev = campers
+    const nextValue = counselorId || null
+    setCampers((rows) =>
+      rows.map((c) => (c.id === camperId ? { ...c, counselor_id: nextValue } : c)),
     )
-    await supabase
+    setAssignError(null)
+
+    const { error } = await supabase
       .from('campers')
-      .update({ counselor_id: counselorId || null })
+      .update({ counselor_id: nextValue })
       .eq('id', camperId)
+
+    if (error) {
+      setCampers(prev) // revert
+      setAssignError(`Couldn't save assignment: ${error.message}`)
+    }
   }
 
   if (authLoading) {
@@ -118,6 +130,12 @@ export default function CampAdminCampers() {
         <p className="mt-1 text-sm text-gray-500">
           {campers.length} registered for {camp.name}.
         </p>
+
+        {assignError && (
+          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {assignError}
+          </div>
+        )}
 
         {campers.length === 0 ? (
           <div className="mt-10 rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500">
