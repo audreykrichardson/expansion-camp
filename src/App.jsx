@@ -7,6 +7,7 @@ import CampRegister from './pages/CampRegister.jsx'
 import CampAdmin from './pages/CampAdmin.jsx'
 import CampAdminCampers from './pages/CampAdminCampers.jsx'
 import CampAdminCounselors from './pages/CampAdminCounselors.jsx'
+import CampAdminSessions from './pages/CampAdminSessions.jsx'
 import CampAdminSettings from './pages/CampAdminSettings.jsx'
 import CounselorJoin from './pages/CounselorJoin.jsx'
 import CounselorDashboard from './pages/CounselorDashboard.jsx'
@@ -28,6 +29,7 @@ export default function App() {
       <Route path="/:campSlug/admin" element={<CampAdmin />} />
       <Route path="/:campSlug/admin/campers" element={<CampAdminCampers />} />
       <Route path="/:campSlug/admin/counselors" element={<CampAdminCounselors />} />
+      <Route path="/:campSlug/admin/sessions" element={<CampAdminSessions />} />
       <Route path="/:campSlug/admin/settings" element={<CampAdminSettings />} />
 
       <Route path="*" element={<NotFound />} />

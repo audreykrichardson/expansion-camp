@@ -15,6 +15,7 @@ export default function CounselorDashboard() {
   const [camp, setCamp] = useState(null)
   const [me, setMe] = useState(null)
   const [myCampers, setMyCampers] = useState([])
+  const [mySessions, setMySessions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -40,12 +41,21 @@ export default function CounselorDashboard() {
         setMe(counselorRow)
         // Pull the campers assigned to this counselor. RLS restricts this to
         // just the ones with counselor_id = this counselor.
-        const { data: camperRows } = await supabase
-          .from('campers')
-          .select('*')
-          .eq('counselor_id', counselorRow.id)
-          .order('last_name')
+        const [{ data: camperRows }, { data: sessionRows }] = await Promise.all([
+          supabase
+            .from('campers')
+            .select('*')
+            .eq('counselor_id', counselorRow.id)
+            .order('last_name'),
+          supabase
+            .from('sessions')
+            .select('*')
+            .eq('counselor_id', counselorRow.id)
+            .order('session_date', { ascending: true })
+            .order('start_time', { ascending: true, nullsFirst: false }),
+        ])
         setMyCampers(camperRows ?? [])
+        setMySessions(sessionRows ?? [])
       }
       setLoading(false)
     })()
@@ -105,9 +115,13 @@ export default function CounselorDashboard() {
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <div className="text-sm font-medium text-gray-500">Your schedule</div>
-            <div className="mt-1 text-xl font-semibold text-gray-300">Coming soon</div>
+            <div className="mt-1 text-3xl font-bold" style={{ color }}>
+              {mySessions.length}
+            </div>
             <p className="mt-2 text-xs text-gray-400">
-              Sessions you're assigned to will show here.
+              {mySessions.length === 0
+                ? "You haven't been assigned any sessions yet."
+                : 'Sessions you lead. See below for details.'}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-6">
@@ -122,6 +136,32 @@ export default function CounselorDashboard() {
             </p>
           </div>
         </div>
+
+        {/* Upcoming sessions */}
+        {mySessions.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              Your schedule ({mySessions.length})
+            </h2>
+            <div className="mt-3 space-y-3">
+              {mySessions.map((s) => (
+                <div key={s.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div className="font-semibold text-gray-900">{s.title}</div>
+                  <div className="mt-0.5 text-sm text-gray-500">
+                    {formatDate(s.session_date)}
+                    {s.start_time && ` · ${formatTime(s.start_time)}`}
+                    {s.end_time && ` – ${formatTime(s.end_time)}`}
+                  </div>
+                  {s.description && (
+                    <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
+                      {s.description}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Full roster of assigned kids — only if any. */}
         {myCampers.length > 0 && (
@@ -169,4 +209,21 @@ export default function CounselorDashboard() {
       </main>
     </div>
   )
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function formatTime(t) {
+  const [h, m] = t.split(':')
+  const d = new Date()
+  d.setHours(Number(h), Number(m), 0, 0)
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }

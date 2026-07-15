@@ -12,6 +12,7 @@ export default function CampAdmin() {
   const [camp, setCamp] = useState(null)
   const [camperCount, setCamperCount] = useState(null)
   const [counselorCount, setCounselorCount] = useState(null)
+  const [sessionCount, setSessionCount] = useState(null)
   const [campLoading, setCampLoading] = useState(true)
 
   // Fetch the camp + a count of registered campers. RLS keeps everything
@@ -31,7 +32,11 @@ export default function CampAdmin() {
       setCamp(campRow)
 
       if (campRow) {
-        const [{ count: camperC }, { count: counselorC }] = await Promise.all([
+        const [
+          { count: camperC },
+          { count: counselorC },
+          { count: sessionC },
+        ] = await Promise.all([
           supabase
             .from('campers')
             .select('*', { count: 'exact', head: true })
@@ -40,10 +45,15 @@ export default function CampAdmin() {
             .from('counselors')
             .select('*', { count: 'exact', head: true })
             .eq('camp_id', campRow.id),
+          supabase
+            .from('sessions')
+            .select('*', { count: 'exact', head: true })
+            .eq('camp_id', campRow.id),
         ])
         if (!cancelled) {
           setCamperCount(camperC ?? 0)
           setCounselorCount(counselorC ?? 0)
+          setSessionCount(sessionC ?? 0)
         }
       }
       if (!cancelled) setCampLoading(false)
@@ -125,8 +135,7 @@ export default function CampAdmin() {
           <span className="font-mono">{window.location.host}/{camp.slug}</span>
         </p>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {/* Campers card is live — clicks through to the roster. */}
+        <div className="mt-10 grid gap-4 grid-cols-2 sm:grid-cols-4">
           <Link
             to={`/${camp.slug}/admin/campers`}
             className="rounded-xl border border-gray-200 bg-white p-6 text-center transition hover:border-emerald-400 hover:shadow-sm"
@@ -138,7 +147,6 @@ export default function CampAdmin() {
             <div className="mt-1 text-xs text-gray-400">View roster &rarr;</div>
           </Link>
 
-          {/* Counselors card is live. */}
           <Link
             to={`/${camp.slug}/admin/counselors`}
             className="rounded-xl border border-gray-200 bg-white p-6 text-center transition hover:border-emerald-400 hover:shadow-sm"
@@ -148,6 +156,17 @@ export default function CampAdmin() {
               {counselorCount ?? '—'}
             </div>
             <div className="mt-1 text-xs text-gray-400">Manage staff &rarr;</div>
+          </Link>
+
+          <Link
+            to={`/${camp.slug}/admin/sessions`}
+            className="rounded-xl border border-gray-200 bg-white p-6 text-center transition hover:border-emerald-400 hover:shadow-sm"
+          >
+            <div className="text-sm font-medium text-gray-500">Sessions</div>
+            <div className="mt-1 text-3xl font-bold text-emerald-600">
+              {sessionCount ?? '—'}
+            </div>
+            <div className="mt-1 text-xs text-gray-400">Schedule &rarr;</div>
           </Link>
 
           {/* Payments — Phase 3B placeholder. */}
