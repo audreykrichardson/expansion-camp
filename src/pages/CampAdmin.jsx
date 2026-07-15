@@ -135,7 +135,7 @@ export default function CampAdmin() {
           <span className="font-mono">{window.location.host}/{camp.slug}</span>
         </p>
 
-        <div className="mt-10 grid gap-4 grid-cols-2 sm:grid-cols-4">
+        <div className="mt-10 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           <Link
             to={`/${camp.slug}/admin/campers`}
             className="rounded-xl border border-gray-200 bg-white p-6 text-center transition hover:border-emerald-400 hover:shadow-sm"
@@ -167,6 +167,15 @@ export default function CampAdmin() {
               {sessionCount ?? '—'}
             </div>
             <div className="mt-1 text-xs text-gray-400">Schedule &rarr;</div>
+          </Link>
+
+          <Link
+            to={`/${camp.slug}/admin/attendance`}
+            className="rounded-xl border border-gray-200 bg-white p-6 text-center transition hover:border-emerald-400 hover:shadow-sm"
+          >
+            <div className="text-sm font-medium text-gray-500">Attendance</div>
+            <div className="mt-1 text-3xl font-bold text-emerald-600">·</div>
+            <div className="mt-1 text-xs text-gray-400">View report &rarr;</div>
           </Link>
 
           {/* Payments — Phase 3B placeholder. */}
