@@ -5,12 +5,14 @@ import Login from './pages/Login.jsx'
 import CampHome from './pages/CampHome.jsx'
 import CampRegister from './pages/CampRegister.jsx'
 import CampAdmin from './pages/CampAdmin.jsx'
+import CampAdminAttendance from './pages/CampAdminAttendance.jsx'
 import CampAdminCampers from './pages/CampAdminCampers.jsx'
 import CampAdminCounselors from './pages/CampAdminCounselors.jsx'
 import CampAdminSessions from './pages/CampAdminSessions.jsx'
 import CampAdminSettings from './pages/CampAdminSettings.jsx'
 import CounselorJoin from './pages/CounselorJoin.jsx'
 import CounselorDashboard from './pages/CounselorDashboard.jsx'
+import CounselorSessionAttendance from './pages/CounselorSessionAttendance.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -26,10 +28,12 @@ export default function App() {
       <Route path="/:campSlug/register" element={<CampRegister />} />
       <Route path="/:campSlug/join/:token" element={<CounselorJoin />} />
       <Route path="/:campSlug/counselor" element={<CounselorDashboard />} />
+      <Route path="/:campSlug/counselor/sessions/:sessionId" element={<CounselorSessionAttendance />} />
       <Route path="/:campSlug/admin" element={<CampAdmin />} />
       <Route path="/:campSlug/admin/campers" element={<CampAdminCampers />} />
       <Route path="/:campSlug/admin/counselors" element={<CampAdminCounselors />} />
       <Route path="/:campSlug/admin/sessions" element={<CampAdminSessions />} />
+      <Route path="/:campSlug/admin/attendance" element={<CampAdminAttendance />} />
       <Route path="/:campSlug/admin/settings" element={<CampAdminSettings />} />
 
       <Route path="*" element={<NotFound />} />

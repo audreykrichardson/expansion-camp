@@ -137,7 +137,7 @@ export default function CounselorDashboard() {
           </div>
         </div>
 
-        {/* Upcoming sessions */}
+        {/* Upcoming sessions — clickable → attendance page for that session */}
         {mySessions.length > 0 && (
           <section className="mt-10">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
@@ -145,19 +145,30 @@ export default function CounselorDashboard() {
             </h2>
             <div className="mt-3 space-y-3">
               {mySessions.map((s) => (
-                <div key={s.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                  <div className="font-semibold text-gray-900">{s.title}</div>
-                  <div className="mt-0.5 text-sm text-gray-500">
-                    {formatDate(s.session_date)}
-                    {s.start_time && ` · ${formatTime(s.start_time)}`}
-                    {s.end_time && ` – ${formatTime(s.end_time)}`}
-                  </div>
-                  {s.description && (
-                    <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
-                      {s.description}
+                <Link
+                  key={s.id}
+                  to={`/${camp.slug}/counselor/sessions/${s.id}`}
+                  className="block rounded-xl border border-gray-200 bg-white p-4 transition hover:border-emerald-400 hover:shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900">{s.title}</div>
+                      <div className="mt-0.5 text-sm text-gray-500">
+                        {formatDate(s.session_date)}
+                        {s.start_time && ` · ${formatTime(s.start_time)}`}
+                        {s.end_time && ` – ${formatTime(s.end_time)}`}
+                      </div>
+                      {s.description && (
+                        <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
+                          {s.description}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                    <span className="whitespace-nowrap text-xs font-medium text-emerald-700">
+                      Take attendance &rarr;
+                    </span>
+                  </div>
+                </Link>
               ))}
             </div>
           </section>

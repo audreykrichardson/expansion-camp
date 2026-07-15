@@ -138,6 +138,12 @@ export default function CampAdminSessions() {
           <Link to={`/${camp.slug}/admin`} className="text-sm text-emerald-700 hover:underline">
             &larr; Admin
           </Link>
+          <Link
+            to={`/${camp.slug}/admin/attendance`}
+            className="text-sm text-gray-500 hover:text-emerald-700"
+          >
+            Attendance report &rarr;
+          </Link>
         </div>
       </header>
 
