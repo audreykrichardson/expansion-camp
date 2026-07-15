@@ -114,6 +114,35 @@ export default function CampAdminSessions() {
     loadAll()
   }
 
+  // Which session is being duplicated + the date the user picked for the copy.
+  const [duplicatingId, setDuplicatingId] = useState(null)
+  const [duplicateDate, setDuplicateDate] = useState('')
+
+  function startDuplicate(sessionRow) {
+    setDuplicatingId(sessionRow.id)
+    setDuplicateDate('') // parent picks fresh
+  }
+
+  async function handleDuplicate(sessionRow) {
+    if (!duplicateDate) return
+    const { error: insertError } = await supabase.from('sessions').insert({
+      camp_id: sessionRow.camp_id,
+      title: sessionRow.title,
+      description: sessionRow.description,
+      session_date: duplicateDate,
+      start_time: sessionRow.start_time,
+      end_time: sessionRow.end_time,
+      counselor_id: sessionRow.counselor_id,
+    })
+    if (insertError) {
+      alert(`Couldn't duplicate: ${insertError.message}`)
+      return
+    }
+    setDuplicatingId(null)
+    setDuplicateDate('')
+    loadAll()
+  }
+
   function counselorName(id) {
     if (!id) return 'Unassigned'
     return counselors.find((c) => c.id === id)?.name ?? 'Unknown'
@@ -250,13 +279,22 @@ export default function CampAdminSessions() {
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(s.id)}
-                      className="text-xs font-medium text-red-600 hover:underline"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-center gap-3 text-xs font-medium">
+                      <button
+                        type="button"
+                        onClick={() => startDuplicate(s)}
+                        className="text-emerald-700 hover:underline"
+                      >
+                        Duplicate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.id)}
+                        className="text-red-600 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-3 flex items-center gap-2 text-sm">
                     <span className="text-gray-500">Counselor:</span>
@@ -275,6 +313,38 @@ export default function CampAdminSessions() {
                       </select>
                     )}
                   </div>
+
+                  {/* Duplicate form — appears inline when the user clicks Duplicate */}
+                  {duplicatingId === s.id && (
+                    <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                      <div className="text-sm font-medium text-emerald-900">
+                        Copy this session to a new date
+                      </div>
+                      <p className="mt-1 text-xs text-emerald-700">
+                        Everything else (title, times, counselor) stays the same.
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <div className="min-w-[220px]">
+                          <DatePicker value={duplicateDate} onChange={setDuplicateDate} />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicate(s)}
+                          disabled={!duplicateDate}
+                          className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Copy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDuplicatingId(null)}
+                          className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
