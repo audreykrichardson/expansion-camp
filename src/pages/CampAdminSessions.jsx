@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/useAuth.js'
 import DatePicker from '../components/DatePicker.jsx'
 import TimePicker from '../components/TimePicker.jsx'
+import Modal from '../components/Modal.jsx'
 
 // Admin schedule view — owner creates sessions (activity blocks) and
 // optionally assigns each to a counselor.
@@ -111,6 +112,30 @@ export default function CampAdminSessions() {
   async function handleDelete(sessionId) {
     if (!confirm('Delete this session?')) return
     await supabase.from('sessions').delete().eq('id', sessionId)
+    loadAll()
+  }
+
+  // Which session is being edited in the modal.
+  const [editingSession, setEditingSession] = useState(null)
+
+  async function handleSaveSession(updated) {
+    const { error: updateError } = await supabase
+      .from('sessions')
+      .update({
+        title: updated.title,
+        description: updated.description || null,
+        session_date: updated.session_date,
+        start_time: updated.start_time || null,
+        end_time: updated.end_time || null,
+        counselor_id: updated.counselor_id || null,
+      })
+      .eq('id', editingSession.id)
+
+    if (updateError) {
+      alert(`Couldn't save: ${updateError.message}`)
+      return
+    }
+    setEditingSession(null)
     loadAll()
   }
 
@@ -282,6 +307,13 @@ export default function CampAdminSessions() {
                     <div className="flex items-center gap-3 text-xs font-medium">
                       <button
                         type="button"
+                        onClick={() => setEditingSession(s)}
+                        className="text-emerald-700 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => startDuplicate(s)}
                         className="text-emerald-700 hover:underline"
                       >
@@ -351,7 +383,104 @@ export default function CampAdminSessions() {
           )}
         </section>
       </main>
+
+      {/* Edit session modal */}
+      <Modal
+        open={!!editingSession}
+        onClose={() => setEditingSession(null)}
+        title="Edit session"
+        wide
+      >
+        {editingSession && (
+          <EditSessionForm
+            initial={editingSession}
+            counselors={counselors}
+            onCancel={() => setEditingSession(null)}
+            onSave={handleSaveSession}
+          />
+        )}
+      </Modal>
     </div>
+  )
+}
+
+function EditSessionForm({ initial, counselors, onCancel, onSave }) {
+  const [form, setForm] = useState(initial)
+  const [saving, setSaving] = useState(false)
+
+  function update(field, value) {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    await onSave(form)
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Title</label>
+        <input
+          type="text"
+          value={form.title}
+          onChange={(e) => update('title', e.target.value)}
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Description</label>
+        <textarea
+          rows={2}
+          value={form.description ?? ''}
+          onChange={(e) => update('description', e.target.value)}
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Date</label>
+          <div className="mt-1">
+            <DatePicker value={form.session_date ?? ''} onChange={(v) => update('session_date', v)} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Counselor</label>
+          <select
+            value={form.counselor_id ?? ''}
+            onChange={(e) => update('counselor_id', e.target.value)}
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          >
+            <option value="">— Unassigned —</option>
+            {counselors.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Start time</label>
+          <div className="mt-1">
+            <TimePicker value={form.start_time ?? ''} onChange={(v) => update('start_time', v)} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">End time</label>
+          <div className="mt-1">
+            <TimePicker value={form.end_time ?? ''} onChange={(v) => update('end_time', v)} />
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </div>
+    </form>
   )
 }
 
