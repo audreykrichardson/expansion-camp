@@ -24,7 +24,7 @@ export default function CampAdmin() {
     ;(async () => {
       const { data: campRow } = await supabase
         .from('camps')
-        .select('id, slug, name, created_at')
+        .select('id, slug, name, tagline, logo_url, primary_color, created_at')
         .eq('slug', campSlug)
         .maybeSingle()
 
@@ -135,6 +135,13 @@ export default function CampAdmin() {
           <span className="font-mono">{window.location.host}/{camp.slug}</span>
         </p>
 
+        <GettingStarted
+          camp={camp}
+          camperCount={camperCount}
+          counselorCount={counselorCount}
+          sessionCount={sessionCount}
+        />
+
         <div className="mt-10 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           <Link
             to={`/${camp.slug}/admin/campers`}
@@ -192,6 +199,88 @@ export default function CampAdmin() {
           </span>
         </div>
       </main>
+    </div>
+  )
+}
+
+// Onboarding checklist. Shown when there are still first-time tasks to do,
+// hides itself once every item is done so it doesn't clutter a mature camp.
+function GettingStarted({ camp, camperCount, counselorCount, sessionCount }) {
+  const items = [
+    {
+      done: camp.tagline || camp.logo_url || (camp.primary_color && camp.primary_color !== '#059669'),
+      text: 'Customize your camp — pick a color, add a tagline or logo',
+      href: `/${camp.slug}/admin/settings`,
+      cta: 'Open settings',
+    },
+    {
+      done: (counselorCount ?? 0) > 0,
+      text: 'Invite your first counselor',
+      href: `/${camp.slug}/admin/counselors`,
+      cta: 'Invite',
+    },
+    {
+      done: (sessionCount ?? 0) > 0,
+      text: 'Add your first session (activity block)',
+      href: `/${camp.slug}/admin/sessions`,
+      cta: 'Add session',
+    },
+    {
+      done: (camperCount ?? 0) > 0,
+      text: 'Share your registration link with parents',
+      href: `/${camp.slug}/register`,
+      cta: 'Preview form',
+    },
+  ]
+
+  const doneCount = items.filter((i) => i.done).length
+  const total = items.length
+
+  // Hide once everything's done.
+  if (doneCount === total) return null
+
+  return (
+    <div className="mt-8 rounded-2xl border border-emerald-200 bg-white p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Get your camp set up</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {doneCount} of {total} done — knock these out to launch.
+          </p>
+        </div>
+        <div className="text-sm font-semibold text-emerald-700">
+          {Math.round((doneCount / total) * 100)}%
+        </div>
+      </div>
+
+      <ul className="mt-4 divide-y divide-gray-100">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-center justify-between gap-3 py-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <span
+                className={
+                  item.done
+                    ? 'mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-emerald-500 text-xs text-white'
+                    : 'mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full border-2 border-gray-300'
+                }
+              >
+                {item.done && '✓'}
+              </span>
+              <span className={item.done ? 'text-sm text-gray-400 line-through' : 'text-sm text-gray-700'}>
+                {item.text}
+              </span>
+            </div>
+            {!item.done && (
+              <Link
+                to={item.href}
+                className="whitespace-nowrap text-xs font-medium text-emerald-700 hover:underline"
+              >
+                {item.cta} &rarr;
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
