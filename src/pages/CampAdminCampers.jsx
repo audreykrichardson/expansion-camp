@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/useAuth.js'
+import Modal from '../components/Modal.jsx'
+
+// Same formatter as the parent registration form.
+function formatPhone(input) {
+  const digits = input.replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return `(${digits}`
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
 
 // Admin view of registered campers. RLS makes sure we only see rows for
 // camps the logged-in user owns — but we still verify the URL slug matches
@@ -89,6 +99,33 @@ export default function CampAdminCampers() {
     }
   }
 
+  // Which camper (if any) is being edited in the modal.
+  const [editingCamper, setEditingCamper] = useState(null)
+
+  async function handleSaveCamper(updated) {
+    const { error } = await supabase
+      .from('campers')
+      .update({
+        first_name: updated.first_name,
+        last_name: updated.last_name,
+        date_of_birth: updated.date_of_birth || null,
+        parent_name: updated.parent_name,
+        parent_email: updated.parent_email,
+        parent_phone: updated.parent_phone || null,
+        emergency_contact_name: updated.emergency_contact_name || null,
+        emergency_contact_phone: updated.emergency_contact_phone || null,
+        notes: updated.notes || null,
+      })
+      .eq('id', editingCamper.id)
+
+    if (error) {
+      alert(`Couldn't save: ${error.message}`)
+      return
+    }
+    setCampers((rows) => rows.map((c) => (c.id === editingCamper.id ? { ...c, ...updated } : c)))
+    setEditingCamper(null)
+  }
+
   if (authLoading) {
     return <div className="p-12 text-center text-gray-400">Loading…</div>
   }
@@ -158,6 +195,7 @@ export default function CampAdminCampers() {
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">Counselor</th>
                   <th className="px-4 py-3">Registered</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -193,6 +231,15 @@ export default function CampAdminCampers() {
                     <td className="px-4 py-3 text-gray-500">
                       {new Date(c.created_at).toLocaleDateString()}
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setEditingCamper(c)}
+                        className="text-xs font-medium text-emerald-700 hover:underline"
+                      >
+                        Edit
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -200,6 +247,84 @@ export default function CampAdminCampers() {
           </div>
         )}
       </main>
+
+      {/* Edit camper modal */}
+      <Modal
+        open={!!editingCamper}
+        onClose={() => setEditingCamper(null)}
+        title="Edit camper"
+        wide
+      >
+        {editingCamper && (
+          <EditCamperForm
+            initial={editingCamper}
+            onCancel={() => setEditingCamper(null)}
+            onSave={handleSaveCamper}
+          />
+        )}
+      </Modal>
+    </div>
+  )
+}
+
+function EditCamperForm({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial)
+  const [saving, setSaving] = useState(false)
+
+  function update(field, value) {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    await onSave(form)
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField label="First name" value={form.first_name} onChange={(v) => update('first_name', v)} />
+        <TextField label="Last name" value={form.last_name} onChange={(v) => update('last_name', v)} />
+        <TextField label="Date of birth" type="date" value={form.date_of_birth ?? ''} onChange={(v) => update('date_of_birth', v)} />
+        <TextField label="Parent name" value={form.parent_name} onChange={(v) => update('parent_name', v)} />
+        <TextField label="Parent email" type="email" value={form.parent_email} onChange={(v) => update('parent_email', v)} />
+        <TextField label="Parent phone" value={form.parent_phone ?? ''} onChange={(v) => update('parent_phone', formatPhone(v))} />
+        <TextField label="Emergency contact" value={form.emergency_contact_name ?? ''} onChange={(v) => update('emergency_contact_name', v)} />
+        <TextField label="Emergency phone" value={form.emergency_contact_phone ?? ''} onChange={(v) => update('emergency_contact_phone', formatPhone(v))} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Notes</label>
+        <textarea
+          rows={3}
+          value={form.notes ?? ''}
+          onChange={(e) => update('notes', e.target.value)}
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function TextField({ label, value, onChange, type = 'text' }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      />
     </div>
   )
 }
