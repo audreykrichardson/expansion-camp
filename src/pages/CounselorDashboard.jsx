@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/useAuth.js'
+import Modal from '../components/Modal.jsx'
+
+// Same phone formatter used across the app.
+function formatPhone(input) {
+  const digits = input.replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return `(${digits}`
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
 
 // Counselor's view of a camp. Different from the admin: counselors can only
 // see basic info about their camp and their own record. No camper roster
@@ -66,6 +76,25 @@ export default function CounselorDashboard() {
     navigate('/')
   }
 
+  const [editingProfile, setEditingProfile] = useState(false)
+
+  async function handleSaveProfile(updated) {
+    const { error } = await supabase
+      .from('counselors')
+      .update({
+        name: updated.name,
+        phone: updated.phone || null,
+      })
+      .eq('id', me.id)
+
+    if (error) {
+      alert(`Couldn't save: ${error.message}`)
+      return
+    }
+    setMe((prev) => ({ ...prev, ...updated }))
+    setEditingProfile(false)
+  }
+
   if (authLoading) return <div className="p-12 text-center text-gray-400">Loading…</div>
   if (!session) return <Navigate to="/login" state={{ from: location.pathname }} replace />
   if (loading) return <div className="p-12 text-center text-gray-400">Loading…</div>
@@ -93,6 +122,13 @@ export default function CounselorDashboard() {
             {camp.name}
           </span>
           <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setEditingProfile(true)}
+              className="text-sm font-medium text-gray-700 hover:text-emerald-700"
+            >
+              Edit profile
+            </button>
             <span className="text-sm text-gray-500">{user.email}</span>
             <button
               type="button"
@@ -218,7 +254,70 @@ export default function CounselorDashboard() {
           </section>
         )}
       </main>
+
+      {/* Edit-your-own-profile modal */}
+      <Modal
+        open={editingProfile}
+        onClose={() => setEditingProfile(false)}
+        title="Edit your profile"
+      >
+        {me && (
+          <EditProfileForm
+            initial={me}
+            onCancel={() => setEditingProfile(false)}
+            onSave={handleSaveProfile}
+          />
+        )}
+      </Modal>
     </div>
+  )
+}
+
+function EditProfileForm({ initial, onCancel, onSave }) {
+  const [name, setName] = useState(initial.name)
+  const [phone, setPhone] = useState(initial.phone ?? '')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    await onSave({ name, phone })
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Phone</label>
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(formatPhone(e.target.value))}
+          placeholder="(555) 123-4567"
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <p className="text-xs text-gray-500">
+        To change your login email or role, ask the camp admin.
+      </p>
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </div>
+    </form>
   )
 }
 
