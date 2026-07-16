@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/useAuth.js'
+import Modal from '../components/Modal.jsx'
 
 // Same formatter as the parent registration form: caps at 10 digits and
 // formats as (555) 123-4567 while typing.
@@ -105,6 +106,28 @@ export default function CampAdminCounselors() {
   async function handleRemove(counselorId) {
     if (!confirm('Remove this counselor?')) return
     await supabase.from('counselors').delete().eq('id', counselorId)
+    loadAll()
+  }
+
+  // Which counselor is being edited in the modal.
+  const [editingCounselor, setEditingCounselor] = useState(null)
+
+  async function handleSaveCounselor(updated) {
+    const { error: updateError } = await supabase
+      .from('counselors')
+      .update({
+        name: updated.name,
+        email: updated.email,
+        role: updated.role || 'Counselor',
+        phone: updated.phone || null,
+      })
+      .eq('id', editingCounselor.id)
+
+    if (updateError) {
+      alert(`Couldn't save: ${updateError.message}`)
+      return
+    }
+    setEditingCounselor(null)
     loadAll()
   }
 
@@ -253,13 +276,22 @@ export default function CampAdminCounselors() {
                           : '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(c.id)}
-                          className="text-xs font-medium text-red-600 hover:underline"
-                        >
-                          Remove
-                        </button>
+                        <div className="flex justify-end gap-3 text-xs font-medium">
+                          <button
+                            type="button"
+                            onClick={() => setEditingCounselor(c)}
+                            className="text-emerald-700 hover:underline"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(c.id)}
+                            className="text-red-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -269,7 +301,55 @@ export default function CampAdminCounselors() {
           )}
         </section>
       </main>
+
+      {/* Edit counselor modal */}
+      <Modal
+        open={!!editingCounselor}
+        onClose={() => setEditingCounselor(null)}
+        title="Edit counselor"
+      >
+        {editingCounselor && (
+          <EditCounselorForm
+            initial={editingCounselor}
+            onCancel={() => setEditingCounselor(null)}
+            onSave={handleSaveCounselor}
+          />
+        )}
+      </Modal>
     </div>
+  )
+}
+
+function EditCounselorForm({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial)
+  const [saving, setSaving] = useState(false)
+
+  function update(field, value) {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    await onSave(form)
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Input label="Name" value={form.name} onChange={(v) => update('name', v)} />
+      <Input label="Contact email" type="email" value={form.email} onChange={(v) => update('email', v)} />
+      <Input label="Role" value={form.role ?? ''} onChange={(v) => update('role', v)} placeholder="Counselor" />
+      <Input label="Phone" value={form.phone ?? ''} onChange={(v) => update('phone', v)} format={formatPhone} placeholder="(555) 123-4567" />
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </div>
+    </form>
   )
 }
 
