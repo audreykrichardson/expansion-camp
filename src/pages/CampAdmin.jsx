@@ -24,11 +24,33 @@ export default function CampAdmin() {
     ;(async () => {
       const { data: campRow } = await supabase
         .from('camps')
-        .select('id, slug, name, tagline, logo_url, primary_color, created_at')
+        .select('id, slug, name, tagline, logo_url, primary_color, owner_user_id, created_at')
         .eq('slug', campSlug)
         .maybeSingle()
 
       if (cancelled) return
+
+      // Ownership check: this page is for the camp's owner only. If someone
+      // else is signed in (a counselor here, a parent, a completely different
+      // user) send them somewhere reasonable instead of showing this page.
+      if (campRow && campRow.owner_user_id !== session.user.id) {
+        // Are they a counselor at this camp? Send them to their dashboard.
+        const { data: counselorRow } = await supabase
+          .from('counselors')
+          .select('id')
+          .eq('camp_id', campRow.id)
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+        if (cancelled) return
+        if (counselorRow) {
+          navigate(`/${campRow.slug}/counselor`, { replace: true })
+          return
+        }
+        // Not owner, not counselor — go home.
+        navigate('/', { replace: true })
+        return
+      }
+
       setCamp(campRow)
 
       if (campRow) {
@@ -192,13 +214,41 @@ export default function CampAdmin() {
           </div>
         </div>
 
-        <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-          <span className="font-semibold">Share your registration link:</span>{' '}
-          <span className="font-mono">
-            {window.location.host}/{camp.slug}/register
-          </span>
-        </div>
+        <RegistrationLinkBanner slug={camp.slug} />
       </main>
+    </div>
+  )
+}
+
+function RegistrationLinkBanner({ slug }) {
+  const [copied, setCopied] = useState(false)
+  const url = `${window.location.origin}/${slug}/register`
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Ignore — some browsers/contexts (like non-https) block clipboard.
+    }
+  }
+
+  return (
+    <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-semibold">Share your registration link:</span>
+        <span className="min-w-0 flex-1 truncate rounded-md bg-white/60 px-2 py-1 font-mono text-xs">
+          {url}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="rounded-md border border-emerald-300 bg-white px-3 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
     </div>
   )
 }
