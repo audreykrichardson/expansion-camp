@@ -53,6 +53,7 @@ export default function CampAdminSettings() {
   const location = useLocation()
   const navigate = useNavigate()
   const { session, loading: authLoading } = useAuth()
+  // (owner ownership check is done inside the useEffect below)
 
   const [camp, setCamp] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -72,23 +73,41 @@ export default function CampAdminSettings() {
 
   useEffect(() => {
     if (!session) return
+    let cancelled = false
     setLoading(true)
-    supabase
-      .from('camps')
-      .select('id, slug, name, tagline, primary_color, logo_url')
-      .eq('slug', campSlug)
-      .maybeSingle()
-      .then(({ data }) => {
-        setCamp(data)
-        if (data) {
-          setName(data.name ?? '')
-          setTagline(data.tagline ?? '')
-          setPrimaryColor(data.primary_color ?? '#059669')
-          setLogoUrl(data.logo_url ?? null)
-        }
-        setLoading(false)
-      })
-  }, [campSlug, session])
+    ;(async () => {
+      const { data } = await supabase
+        .from('camps')
+        .select('id, slug, name, tagline, primary_color, logo_url, owner_user_id')
+        .eq('slug', campSlug)
+        .maybeSingle()
+
+      if (cancelled) return
+
+      // Owner-only page.
+      if (data && data.owner_user_id !== session.user.id) {
+        const { data: c } = await supabase
+          .from('counselors')
+          .select('id')
+          .eq('camp_id', data.id)
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+        if (cancelled) return
+        navigate(c ? `/${data.slug}/counselor` : '/', { replace: true })
+        return
+      }
+
+      setCamp(data)
+      if (data) {
+        setName(data.name ?? '')
+        setTagline(data.tagline ?? '')
+        setPrimaryColor(data.primary_color ?? '#059669')
+        setLogoUrl(data.logo_url ?? null)
+      }
+      setLoading(false)
+    })()
+    return () => { cancelled = true }
+  }, [campSlug, session, navigate])
 
   async function handleLogoFile(event) {
     const file = event.target.files?.[0]

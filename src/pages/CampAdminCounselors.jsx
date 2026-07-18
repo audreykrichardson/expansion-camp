@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/useAuth.js'
 import Modal from '../components/Modal.jsx'
@@ -18,6 +18,7 @@ function formatPhone(input) {
 export default function CampAdminCounselors() {
   const { campSlug } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const { session, loading: authLoading } = useAuth()
 
   const [camp, setCamp] = useState(null)
@@ -45,9 +46,22 @@ export default function CampAdminCounselors() {
     setLoading(true)
     const { data: campRow } = await supabase
       .from('camps')
-      .select('id, slug, name')
+      .select('id, slug, name, owner_user_id')
       .eq('slug', campSlug)
       .maybeSingle()
+
+    // Owner-only page.
+    if (campRow && campRow.owner_user_id !== session.user.id) {
+      const { data: c } = await supabase
+        .from('counselors')
+        .select('id')
+        .eq('camp_id', campRow.id)
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      navigate(c ? `/${campRow.slug}/counselor` : '/', { replace: true })
+      return
+    }
+
     setCamp(campRow)
 
     if (campRow) {
