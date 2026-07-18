@@ -57,11 +57,34 @@ export default function CampAdminSessions() {
           .not('user_id', 'is', null)
           .order('name'),
       ])
-      setSessions(sessionRows ?? [])
+      const rows = sessionRows ?? []
+      setSessions(rows)
       setCounselors(counselorRows ?? [])
+
+      // Fetch attendance counts per session in one query, then bucket.
+      const sessionIds = rows.map((s) => s.id)
+      if (sessionIds.length > 0) {
+        const { data: attendanceRows } = await supabase
+          .from('attendance')
+          .select('session_id, status')
+          .in('session_id', sessionIds)
+        const buckets = {}
+        for (const a of attendanceRows ?? []) {
+          if (!buckets[a.session_id]) {
+            buckets[a.session_id] = { present: 0, late: 0, absent: 0 }
+          }
+          buckets[a.session_id][a.status]++
+        }
+        setAttendanceCounts(buckets)
+      } else {
+        setAttendanceCounts({})
+      }
     }
     setLoading(false)
   }
+
+  // { sessionId -> {present, late, absent} }
+  const [attendanceCounts, setAttendanceCounts] = useState({})
 
   async function handleCreate(event) {
     event.preventDefault()
@@ -292,7 +315,10 @@ export default function CampAdminSessions() {
                 <div key={s.id} className="rounded-xl border border-gray-200 bg-white p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-semibold text-gray-900">{s.title}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-gray-900">{s.title}</span>
+                        <AttendanceBadge counts={attendanceCounts[s.id]} />
+                      </div>
                       <div className="mt-0.5 text-sm text-gray-500">
                         {formatDate(s.session_date)}
                         {s.start_time && ` · ${formatTime(s.start_time)}`}
@@ -501,4 +527,22 @@ function formatTime(t) {
   const d = new Date()
   d.setHours(Number(h), Number(m), 0, 0)
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+}
+
+// Small pill showing at-a-glance whether attendance has been taken on this
+// session. Grey pill = nothing marked yet. Green pill = at least one person
+// marked, shows "P / L / A" counts.
+function AttendanceBadge({ counts }) {
+  if (!counts || (counts.present + counts.late + counts.absent === 0)) {
+    return (
+      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+        No attendance yet
+      </span>
+    )
+  }
+  return (
+    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+      {counts.present}P · {counts.late}L · {counts.absent}A
+    </span>
+  )
 }
