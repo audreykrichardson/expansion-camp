@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
+import { getCounselorForCamp } from '../lib/counselors.js'
 import { useAuth } from '../lib/useAuth.js'
 import Modal from '../components/Modal.jsx'
 
@@ -32,22 +33,22 @@ export default function CounselorDashboard() {
     if (!session) return
     ;(async () => {
       setLoading(true)
-      const [{ data: campRow }, { data: counselorRow }] = await Promise.all([
-        supabase
-          .from('camps')
-          .select('id, slug, name, tagline, primary_color, logo_url')
-          .eq('slug', campSlug)
-          .maybeSingle(),
-        supabase
-          .from('counselors')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .maybeSingle(),
-      ])
+      const { data: campRow } = await supabase
+        .from('camps')
+        .select('id, slug, name, tagline, primary_color, logo_url')
+        .eq('slug', campSlug)
+        .maybeSingle()
       setCamp(campRow)
 
-      // Only show this as "your" dashboard if you're a counselor of this camp.
-      if (counselorRow && campRow && counselorRow.camp_id === campRow.id) {
+      // Look up this user's counselor record AT THIS CAMP. Scoping to the
+      // camp is what keeps a two-camp counselor from breaking their own
+      // dashboard (slice-001). getCounselorForCamp returns null if they
+      // aren't a counselor here, which the guard below handles.
+      const counselorRow = campRow
+        ? await getCounselorForCamp(supabase, session.user.id, campRow.id)
+        : null
+
+      if (counselorRow) {
         setMe(counselorRow)
         // Pull the campers assigned to this counselor. RLS restricts this to
         // just the ones with counselor_id = this counselor.

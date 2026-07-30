@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
+import { getCounselorCamps } from '../lib/counselors.js'
 import PasswordInput from '../components/PasswordInput.jsx'
 
 export default function Login() {
@@ -11,6 +12,9 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  // When a counselor belongs to 2+ camps we can't guess which one they want,
+  // so we hold the list here and show a pick-your-camp screen instead.
+  const [campChoices, setCampChoices] = useState(null)
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -50,18 +54,50 @@ export default function Login() {
       return
     }
 
-    const { data: counselorRows } = await supabase
-      .from('counselors')
-      .select('camp_id, camps(slug)')
-      .eq('user_id', data.user.id)
-      .limit(1)
+    // Counselor camps. One → go straight there. Two or more → we can't guess
+    // which, so show a picker. None → fall through to home.
+    const counselorCamps = await getCounselorCamps(supabase, data.user.id)
 
-    if (counselorRows && counselorRows.length > 0 && counselorRows[0].camps) {
-      navigate(`/${counselorRows[0].camps.slug}/counselor`, { replace: true })
+    if (counselorCamps.length === 1) {
+      navigate(`/${counselorCamps[0].slug}/counselor`, { replace: true })
+      return
+    }
+
+    if (counselorCamps.length >= 2) {
+      setSubmitting(false)
+      setCampChoices(counselorCamps)
       return
     }
 
     navigate('/', { replace: true })
+  }
+
+  // A counselor at more than one camp: let them choose which to open.
+  if (campChoices) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-md px-6 py-16">
+          <h1 className="text-2xl font-bold text-gray-900">Choose a camp</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            You're a counselor at more than one camp. Which one do you want to open?
+          </p>
+
+          <div className="mt-8 space-y-3">
+            {campChoices.map((camp) => (
+              <button
+                key={camp.slug}
+                type="button"
+                onClick={() => navigate(`/${camp.slug}/counselor`, { replace: true })}
+                className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-4 text-left font-medium text-gray-900 transition hover:border-emerald-400 hover:shadow-sm"
+              >
+                {camp.name}
+                <span className="text-emerald-700">&rarr;</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

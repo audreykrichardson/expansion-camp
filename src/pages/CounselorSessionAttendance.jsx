@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
+import { getCounselorForCamp } from '../lib/counselors.js'
 import { useAuth } from '../lib/useAuth.js'
 
 // Attendance page for a single session. Shows the counselor's assigned
@@ -29,21 +30,18 @@ export default function CounselorSessionAttendance() {
     setLoading(true)
     setError(null)
 
-    const [
-      { data: sessionRow },
-      { data: counselorRow },
-    ] = await Promise.all([
-      supabase
-        .from('sessions')
-        .select('*, camps(slug, name, primary_color)')
-        .eq('id', sessionId)
-        .maybeSingle(),
-      supabase
-        .from('counselors')
-        .select('*')
-        .eq('user_id', authSession.user.id)
-        .maybeSingle(),
-    ])
+    const { data: sessionRow } = await supabase
+      .from('sessions')
+      .select('*, camps(slug, name, primary_color)')
+      .eq('id', sessionId)
+      .maybeSingle()
+
+    // Look up this user's counselor record at the camp that owns this
+    // session. Scoping to the camp is what keeps a two-camp counselor from
+    // being wrongly told "not your session" (slice-001).
+    const counselorRow = sessionRow
+      ? await getCounselorForCamp(supabase, authSession.user.id, sessionRow.camp_id)
+      : null
 
     setSession(sessionRow)
     setMe(counselorRow)
