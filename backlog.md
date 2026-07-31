@@ -33,6 +33,15 @@
 
 ## Discovered (needs triage)
 <!-- Bugs/features found mid-slice; do not start these until the current slice is done -->
+- [sec-audit] RLS security audit 2026-07-30 — **PASSED**. All 5 tables (campers, counselors,
+  attendance, sessions, camps) have RLS on with policies properly scoped to owner and/or
+  assigned counselor via auth.uid(). A logged-out user can't read campers, counselor PII,
+  invite tokens, or attendance. camps is public-read by design; no camp-hijack (UPDATE
+  with_check pins owner_user_id). Minor follow-ups below.
+- [sec-note-1] Public camps SELECT (`qual: true`) also exposes internal `owner_user_id` —
+  harmless but untidy; consider a view or column-level restriction later.
+- [sec-note-2] No DELETE policy on campers or camps — safe default, but owners can't delete
+  either through the app; add owner-scoped delete if that becomes a needed feature.
 - [bug-001] npm audit reports 4 pre-existing vulnerabilities (vite, react-router,
   @babel/core) — predates R/G/R setup; needs `npm audit fix` plus a regression check
 - [chore-001] Throwaway test data from verifying slices 001/003 is still in Supabase: two
