@@ -42,8 +42,13 @@
   harmless but untidy; consider a view or column-level restriction later.
 - [sec-note-2] No DELETE policy on campers or camps — safe default, but owners can't delete
   either through the app; add owner-scoped delete if that becomes a needed feature.
-- [bug-001] npm audit reports 4 pre-existing vulnerabilities (vite, react-router,
-  @babel/core) — predates R/G/R setup; needs `npm audit fix` plus a regression check
+- [bug-001] npm audit — PARTLY DONE 2026-07-30. `npm audit fix` (safe, in-range) cleared 3
+  of 5, incl. both HIGH (Vite dev-server, dev/Windows-only) and the low one; lockfile-only
+  change, verified via tests+build+manual login. 2 MODERATE remain → see sec-note-3.
+- [sec-note-3] React Router v6→v7 upgrade needed to clear the 2 remaining moderate
+  open-redirect advisories (GHSA-2j2x-hqr9-3h42, GHSA-wrjc-x8rr-h8h6). Major version =
+  breaking API changes across all routing; do as its own careful migration + full retest,
+  not a quick fix. Relevant (runtime), do before public launch.
 - [chore-001] Throwaway test data from verifying slices 001/003 is still in Supabase: two
   "Test Counselor" rows (Test Camp + Demo Camp) for `testcounselor@gmail.com`, and its Auth
   user. It now works as a handy 2-camp picker test fixture — keep it, or delete via the
