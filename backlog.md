@@ -10,6 +10,10 @@
   reset email actually works: add redirect URLs in Supabase (localhost + prod domain) and
   wire up the real email provider (ties to the "set up email" checklist item). The code
   (slice-005) is done; this is config + delivery.
+  - DIAGNOSED 2026-08-04 via Supabase Auth logs: valid-email /recover requests return
+    200 "Request completed" (NOT rate-limited), but no email is delivered — the built-in
+    Supabase email sender doesn't reliably deliver. Fix = custom SMTP (e.g. Resend free
+    tier) in Supabase Auth settings + verify a sending domain. Beginner-friendly: Resend.
 - [slice-future] SMS / phone password-reset option (Audrey requested 2026-07-30). Big lift,
   not a quick add — needs: collecting + verifying phone numbers on accounts, an SMS provider
   (e.g. Twilio, per-text cost), and Supabase phone-auth config. Email reset already covers
