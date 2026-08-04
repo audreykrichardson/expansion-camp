@@ -6,11 +6,26 @@
 
 ## Planned
 <!-- Slices declared but not started -->
+- [slice-006] Full email round-trip for password reset — finish verifying + configure so the
+  reset email actually works: add redirect URLs in Supabase (localhost + prod domain) and
+  wire up the real email provider (ties to the "set up email" checklist item). The code
+  (slice-005) is done; this is config + delivery.
+- [slice-future] SMS / phone password-reset option (Audrey requested 2026-07-30). Big lift,
+  not a quick add — needs: collecting + verifying phone numbers on accounts, an SMS provider
+  (e.g. Twilio, per-text cost), and Supabase phone-auth config. Email reset already covers
+  the core need; revisit post-launch. See discussion in slice-005 notes.
 - [slice-004] Owners with 2+ camps hit the same Login.jsx `.limit(1)` arbitrariness — apply
   the same deterministic/picker treatment to the owner branch
 
 ## Done
 <!-- Completed slices, newest at top -->
+- [slice-005] Password reset flow ✅ Done 2026-07-30 (code)
+  - ForgotPassword.jsx + ResetPassword.jsx, routes in App.jsx, "Forgot your password?" link
+    + "Password updated" banner in Login.jsx. Flow: forgot → resetPasswordForEmail → emailed
+    link → /reset-password → updateUser → signOut → /login.
+  - Verified: pages render, no console errors, tests 6/6 + build clean; Part A (link →
+    forgot page → "check your email") confirmed by Audrey. Full email round-trip deferred to
+    slice-006 (needs Supabase redirect URLs + real email provider).
 - [slice-003] Pick-your-camp screen + Login wiring (bug-002) ✅ Done 2026-07-29
   - Login.jsx: 0 counselor camps → home, 1 → that dashboard, 2+ → inline "Choose a camp"
     picker (campChoices state); each camp → /:slug/counselor. Scope: counselor camps only.

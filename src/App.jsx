@@ -2,6 +2,8 @@ import { Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing.jsx'
 import Signup from './pages/Signup.jsx'
 import Login from './pages/Login.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 import CampHome from './pages/CampHome.jsx'
 import CampRegister from './pages/CampRegister.jsx'
 import CampAdmin from './pages/CampAdmin.jsx'
@@ -22,6 +24,8 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Each camp lives under its own slug, e.g. /roosevelt */}
       <Route path="/:campSlug" element={<CampHome />} />

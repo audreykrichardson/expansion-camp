@@ -114,6 +114,12 @@ export default function Login() {
           </Link>
         </p>
 
+        {location.state?.passwordReset && (
+          <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            Password updated — please log in with your new password.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Email</label>
@@ -129,6 +135,14 @@ export default function Login() {
             <label className="block text-sm font-medium text-gray-700">Password</label>
             <div className="mt-1">
               <PasswordInput value={password} onChange={setPassword} />
+            </div>
+            <div className="mt-1 text-right">
+              <Link
+                to="/forgot-password"
+                className="text-xs text-emerald-700 hover:underline"
+              >
+                Forgot your password?
+              </Link>
             </div>
           </div>
 
