@@ -6,6 +6,11 @@
 
 ## Planned
 <!-- Slices declared but not started -->
+- [slice-007] Verify a real sending domain in Resend so auth/reset emails can go to ANY
+  address (not just Audrey's Gmail), then swap the Supabase sender from
+  onboarding@resend.dev → noreply@<yourdomain>, and add the production redirect URL in
+  Supabase URL Configuration. Needed before real users can reset passwords. Ties to picking
+  the app's domain.
 - [slice-006] Full email round-trip for password reset — finish verifying + configure so the
   reset email actually works: add redirect URLs in Supabase (localhost + prod domain) and
   wire up the real email provider (ties to the "set up email" checklist item). The code
@@ -23,6 +28,17 @@
 
 ## Done
 <!-- Completed slices, newest at top -->
+- [slice-006] Email delivery via Resend → Supabase SMTP ✅ Done 2026-08-05
+  - Made a Resend account (Audrey's own; Roosevelt's wasn't accessible), created an API key,
+    configured Supabase custom SMTP: host smtp.resend.com, port 465, user "resend", pass =
+    Resend API key, sender onboarding@resend.dev, sender name "Expansion Camp". Added
+    http://localhost:5173/** to Supabase Auth → URL Configuration → Redirect URLs.
+  - VERIFIED END-TO-END: created a Supabase user for audrey.k.richardson@gmail.com, requested
+    a reset, the email actually arrived, clicked the link → /reset-password → set new password
+    → logged in with it. Password reset fully works.
+  - Config only (no repo code change). Test sender onboarding@resend.dev only delivers to
+    Audrey's own Gmail until a domain is verified → that + prod redirect URL is slice-007.
+  - Cleanup someday: the audrey.k.richardson@gmail.com test user + the fake @test.com accounts.
 - [slice-005] Password reset flow ✅ Done 2026-07-30 (code)
   - ForgotPassword.jsx + ResetPassword.jsx, routes in App.jsx, "Forgot your password?" link
     + "Password updated" banner in Login.jsx. Flow: forgot → resetPasswordForEmail → emailed
