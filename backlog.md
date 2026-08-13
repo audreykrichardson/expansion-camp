@@ -27,8 +27,9 @@
   - ⚠️ NOT legal advice / NOT launch-ready as written. Before launch: fill every [BRACKETED]
     placeholder (operator name, [CONTACT EMAIL], [YOUR STATE], effective date) and have a
     lawyer / qualified adult review — especially the children's-data/COPPA section.
-  - Follow-up (slice-009): fill placeholders + legal review; add a "by signing up you agree to
-    Terms & Privacy" line with links on the Signup page.
+  - Signup page now has a "By creating your camp, you agree to our Terms & Privacy Policy"
+    line with links (done 2026-08).
+  - Follow-up (slice-009): fill every placeholder + get a legal/adult review before launch.
 - [slice-006] Email delivery via Resend → Supabase SMTP ✅ Done 2026-08-05
   - Made a Resend account (Audrey's own; Roosevelt's wasn't accessible), created an API key,
     configured Supabase custom SMTP: host smtp.resend.com, port 465, user "resend", pass =

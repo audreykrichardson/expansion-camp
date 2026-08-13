@@ -167,6 +167,18 @@ export default function Signup() {
           >
             {submitting ? 'Creating…' : 'Create camp'}
           </button>
+
+          <p className="text-center text-xs text-gray-500">
+            By creating your camp, you agree to our{' '}
+            <Link to="/terms" className="text-emerald-700 hover:underline">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="text-emerald-700 hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </form>
       </div>
     </div>
