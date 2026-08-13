@@ -11,14 +11,6 @@
   onboarding@resend.dev → noreply@<yourdomain>, and add the production redirect URL in
   Supabase URL Configuration. Needed before real users can reset passwords. Ties to picking
   the app's domain.
-- [slice-006] Full email round-trip for password reset — finish verifying + configure so the
-  reset email actually works: add redirect URLs in Supabase (localhost + prod domain) and
-  wire up the real email provider (ties to the "set up email" checklist item). The code
-  (slice-005) is done; this is config + delivery.
-  - DIAGNOSED 2026-08-04 via Supabase Auth logs: valid-email /recover requests return
-    200 "Request completed" (NOT rate-limited), but no email is delivered — the built-in
-    Supabase email sender doesn't reliably deliver. Fix = custom SMTP (e.g. Resend free
-    tier) in Supabase Auth settings + verify a sending domain. Beginner-friendly: Resend.
 - [slice-future] SMS / phone password-reset option (Audrey requested 2026-07-30). Big lift,
   not a quick add — needs: collecting + verifying phone numbers on accounts, an SMS provider
   (e.g. Twilio, per-text cost), and Supabase phone-auth config. Email reset already covers
@@ -28,6 +20,15 @@
 
 ## Done
 <!-- Completed slices, newest at top -->
+- [slice-008] Privacy Policy + Terms pages ✅ Done 2026-08-XX (DRAFT content)
+  - New src/pages/Privacy.jsx + Terms.jsx, routes /privacy + /terms in App.jsx, footer links
+    on Landing.jsx. Plain-language drafts tailored to what the app collects (camper data via
+    parents, Supabase storage, multi-tenant, children's-privacy section).
+  - ⚠️ NOT legal advice / NOT launch-ready as written. Before launch: fill every [BRACKETED]
+    placeholder (operator name, [CONTACT EMAIL], [YOUR STATE], effective date) and have a
+    lawyer / qualified adult review — especially the children's-data/COPPA section.
+  - Follow-up (slice-009): fill placeholders + legal review; add a "by signing up you agree to
+    Terms & Privacy" line with links on the Signup page.
 - [slice-006] Email delivery via Resend → Supabase SMTP ✅ Done 2026-08-05
   - Made a Resend account (Audrey's own; Roosevelt's wasn't accessible), created an API key,
     configured Supabase custom SMTP: host smtp.resend.com, port 465, user "resend", pass =

@@ -39,6 +39,16 @@ export default function Landing() {
           </Link>
         </div>
       </main>
+
+      <footer className="mx-auto max-w-5xl px-6 py-10 text-center text-sm text-gray-500">
+        <Link to="/privacy" className="hover:text-emerald-700 hover:underline">
+          Privacy Policy
+        </Link>
+        <span className="mx-2 text-gray-300">·</span>
+        <Link to="/terms" className="hover:text-emerald-700 hover:underline">
+          Terms of Service
+        </Link>
+      </footer>
     </div>
   )
 }
