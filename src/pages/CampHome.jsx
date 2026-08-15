@@ -1,25 +1,44 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
+import { getUpcomingSessions } from '../lib/sessions.js'
 
 // Public-facing home page for a camp. No login required — this is what
 // parents see when they visit roosevelt.expansioncamp.com (or /roosevelt).
 export default function CampHome() {
   const { campSlug } = useParams()
   const [camp, setCamp] = useState(null)
+  const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
-    supabase
-      .from('camps')
-      .select('id, slug, name, tagline, primary_color, logo_url, created_at')
-      .eq('slug', campSlug)
-      .maybeSingle()
-      .then(({ data }) => {
-        setCamp(data)
-        setLoading(false)
-      })
+    ;(async () => {
+      const { data: campRow } = await supabase
+        .from('camps')
+        .select('id, slug, name, tagline, primary_color, logo_url, created_at')
+        .eq('slug', campSlug)
+        .maybeSingle()
+      if (cancelled) return
+      setCamp(campRow)
+
+      // Pull the camp's schedule to show parents what's coming up. Reading
+      // sessions here relies on a public SELECT policy on the sessions table
+      // (added for this feature) — otherwise anon visitors get nothing back.
+      if (campRow) {
+        const { data: sessionRows } = await supabase
+          .from('sessions')
+          .select('id, title, description, session_date, start_time, end_time')
+          .eq('camp_id', campRow.id)
+        if (cancelled) return
+        setSessions(sessionRows ?? [])
+      }
+      setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [campSlug])
 
   if (loading) {
@@ -41,6 +60,7 @@ export default function CampHome() {
   }
 
   const color = camp.primary_color || '#059669'
+  const upcoming = getUpcomingSessions(sessions, todayISODate())
 
   return (
     <div className="min-h-screen bg-white">
@@ -68,7 +88,58 @@ export default function CampHome() {
         >
           Register your child
         </Link>
+
+        {upcoming.length > 0 && (
+          <section className="mt-16">
+            <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color }}>
+              Schedule
+            </h2>
+            <div className="mx-auto mt-4 max-w-xl space-y-3 text-left">
+              {upcoming.map((s) => (
+                <div key={s.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div className="font-semibold text-gray-900">{s.title}</div>
+                  <div className="mt-0.5 text-sm text-gray-500">
+                    {formatDate(s.session_date)}
+                    {s.start_time && ` · ${formatTime(s.start_time)}`}
+                    {s.end_time && ` – ${formatTime(s.end_time)}`}
+                  </div>
+                  {s.description && (
+                    <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
+                      {s.description}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )
+}
+
+// Today's date as a local 'YYYY-MM-DD' string, matching how session_date is
+// stored — so "upcoming" is judged in the visitor's own day, not UTC.
+function todayISODate() {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function formatTime(t) {
+  const [h, m] = t.split(':')
+  const d = new Date()
+  d.setHours(Number(h), Number(m), 0, 0)
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }

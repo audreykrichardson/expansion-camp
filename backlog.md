@@ -5,6 +5,11 @@
 (none)
 
 ## Planned
+- [slice-011] Payments Stage 1 — backend + Stripe test-mode wiring — **PAUSED: doing payments
+  with Derek** (his infra wheelhouse; not started). When resumed: add first backend (Netlify
+  functions; netlify-cli 24 installed, test via `netlify dev`), adapt roosevelt-camp's
+  create-payment-intent pattern, use a SEPARATE Stripe account (test mode), keep the secret
+  key out of client code/git. See memory "expansion-camp-payments-direction".
 <!-- Slices declared but not started -->
 - [slice-007] Verify a real sending domain in Resend so auth/reset emails can go to ANY
   address (not just Audrey's Gmail), then swap the Supabase sender from
@@ -20,6 +25,13 @@
 
 ## Done
 <!-- Completed slices, newest at top -->
+- [slice-012] Show a camp's upcoming schedule on its public page ✅ Done 2026-08-XX
+  - getUpcomingSessions(sessions, today) in src/lib/sessions.js (filter past + sort by date
+    then start_time), 4 tests (test-first, R/G/R). CampHome.jsx renders a Schedule section.
+  - Manual Supabase change applied: added a public SELECT policy "anyone can view sessions"
+    on the sessions table (for select, to public, using true) so anon visitors can read the
+    schedule. Updated the RLS-audit memory to reflect sessions is now public-read.
+  - VERIFIED END-TO-END: added a session as owner → it appeared on the logged-out public page.
 - [slice-010] React Router v6→v7 upgrade ✅ Done 2026-08-XX — clears the last 2 npm-audit
   vulnerabilities (open-redirect advisories) + patched a transitive nanoid high. Now
   **0 vulnerabilities** (was 5). App code needed zero changes; verified 6/6 tests, clean
@@ -91,6 +103,9 @@
   open-redirect advisories (GHSA-2j2x-hqr9-3h42, GHSA-wrjc-x8rr-h8h6). Major version =
   breaking API changes across all routing; do as its own careful migration + full retest,
   not a quick fix. Relevant (runtime), do before public launch.
+- [ux-note-1] TimePicker defaults the AM/PM dropdown to AM, so users easily save a PM time as
+  AM by mistake (seen 2026-08: a session's end time saved as 3:15 AM). Consider defaulting the
+  period from the hour, or making AM/PM more prominent. src/components/TimePicker.jsx.
 - [chore-001] Throwaway test data from verifying slices 001/003 is still in Supabase: two
   "Test Counselor" rows (Test Camp + Demo Camp) for `testcounselor@gmail.com`, and its Auth
   user. It now works as a handy 2-camp picker test fixture — keep it, or delete via the
