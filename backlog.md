@@ -5,6 +5,9 @@
 (none)
 
 ## Planned
+- [slice-013] Tweak the public schedule display format (Audrey wants to adjust the look later,
+  2026-08) — e.g. layout, grouping by day, how date/time is shown. Get specifics from her when
+  she's ready. Lives in CampHome.jsx (the Schedule section).
 - [slice-011] Payments Stage 1 — backend + Stripe test-mode wiring — **PAUSED: doing payments
   with Derek** (his infra wheelhouse; not started). When resumed: add first backend (Netlify
   functions; netlify-cli 24 installed, test via `netlify dev`), adapt roosevelt-camp's
