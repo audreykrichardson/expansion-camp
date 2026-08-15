@@ -20,6 +20,11 @@
 
 ## Done
 <!-- Completed slices, newest at top -->
+- [slice-010] React Router v6→v7 upgrade ✅ Done 2026-08-XX — clears the last 2 npm-audit
+  vulnerabilities (open-redirect advisories) + patched a transitive nanoid high. Now
+  **0 vulnerabilities** (was 5). App code needed zero changes; verified 6/6 tests, clean
+  build, and routing (direct render + client-side link nav, no console errors). Fully
+  resolves bug-001 and sec-note-3.
 - [slice-008] Privacy Policy + Terms pages ✅ Done 2026-08-XX (DRAFT content)
   - New src/pages/Privacy.jsx + Terms.jsx, routes /privacy + /terms in App.jsx, footer links
     on Landing.jsx. Plain-language drafts tailored to what the app collects (camper data via
