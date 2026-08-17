@@ -109,6 +109,11 @@
 - [ux-note-1] TimePicker defaults the AM/PM dropdown to AM, so users easily save a PM time as
   AM by mistake (seen 2026-08: a session's end time saved as 3:15 AM). Consider defaulting the
   period from the hour, or making AM/PM more prominent. src/components/TimePicker.jsx.
+- [sec-note-4] The public "anyone can view sessions" policy VANISHED on its own between
+  slice-012 and 2026-08-16 (cause unknown) — the schedule silently stopped showing for
+  logged-out parents. Root cause: schema/RLS lives ONLY in the Supabase dashboard (no
+  migrations in this repo), so required policies can disappear with nothing to restore them.
+  Before launch: document every required policy (or adopt migrations) so they're recreatable.
 - [chore-001] Throwaway test data from verifying slices 001/003 is still in Supabase: two
   "Test Counselor" rows (Test Camp + Demo Camp) for `testcounselor@gmail.com`, and its Auth
   user. It now works as a handy 2-camp picker test fixture — keep it, or delete via the
