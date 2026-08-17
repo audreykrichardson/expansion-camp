@@ -29,7 +29,7 @@ export default function CampHome() {
       if (campRow) {
         const { data: sessionRows } = await supabase
           .from('sessions')
-          .select('id, title, description, session_date, start_time, end_time')
+          .select('id, title, description, session_date, start_time, end_time, is_public')
           .eq('camp_id', campRow.id)
         if (cancelled) return
         setSessions(sessionRows ?? [])

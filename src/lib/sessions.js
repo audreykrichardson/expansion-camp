@@ -11,7 +11,10 @@ export function getUpcomingSessions(sessions, today) {
   // orders dates correctly; start_time is 'HH:MM' (or null), which also string-
   // compares fine — a missing time sorts first.
   return (sessions ?? [])
-    .filter((s) => s.session_date >= today)
+    // Upcoming, and not explicitly hidden by the owner. `is_public !== false`
+    // keeps sessions that are true OR have no value yet (before the column
+    // exists), so existing schedules keep showing.
+    .filter((s) => s.session_date >= today && s.is_public !== false)
     .sort((a, b) => {
       if (a.session_date !== b.session_date) {
         return a.session_date < b.session_date ? -1 : 1

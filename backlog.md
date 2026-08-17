@@ -28,6 +28,14 @@
 
 ## Done
 <!-- Completed slices, newest at top -->
+- [slice-014] Admin can hide/show individual sessions on the public page ✅ Done 2026-08-16
+  - Added is_public boolean column to sessions (default true; manual Supabase `alter table`).
+    getUpcomingSessions now also drops is_public===false (undefined still shows, back-compat) —
+    2 new tests. CampAdminSessions has a per-session slider toggle "Show on camp page"
+    (optimistic update + revert); CampHome selects is_public so hidden ones don't display.
+  - VERIFIED: toggling a session off removed it from the public page, on brought it back.
+  - App-level hide only (public RLS is still `using(true)`, so a hidden session is still
+    readable via raw API, just not shown). Optional hardening logged as a follow-up.
 - [slice-012] Show a camp's upcoming schedule on its public page ✅ Done 2026-08-XX
   - getUpcomingSessions(sessions, today) in src/lib/sessions.js (filter past + sort by date
     then start_time), 4 tests (test-first, R/G/R). CampHome.jsx renders a Schedule section.

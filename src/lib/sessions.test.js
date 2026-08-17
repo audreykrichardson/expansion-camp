@@ -40,4 +40,20 @@ describe('getUpcomingSessions', () => {
   it('returns an empty list when there are no sessions', () => {
     expect(getUpcomingSessions([], '2026-08-10')).toEqual([])
   })
+
+  it('excludes sessions the owner marked not public (is_public false)', () => {
+    const result = getUpcomingSessions(
+      [
+        { ...session(1, '2026-08-20', '09:00'), is_public: false },
+        { ...session(2, '2026-08-20', '10:00'), is_public: true },
+      ],
+      '2026-08-01',
+    )
+    expect(result.map((s) => s.id)).toEqual([2])
+  })
+
+  it('includes sessions with no is_public set (back-compat before the column exists)', () => {
+    const result = getUpcomingSessions([session(1, '2026-08-20', '09:00')], '2026-08-01')
+    expect(result.map((s) => s.id)).toEqual([1])
+  })
 })

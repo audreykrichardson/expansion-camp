@@ -146,6 +146,23 @@ export default function CampAdminSessions() {
       .eq('id', sessionId)
   }
 
+  // Show or hide a session on the camp's public page. Optimistic, and reverts
+  // (with the error surfaced) if the save fails.
+  async function handleTogglePublic(sessionId, nextIsPublic) {
+    const prev = sessions
+    setSessions((rows) =>
+      rows.map((s) => (s.id === sessionId ? { ...s, is_public: nextIsPublic } : s)),
+    )
+    const { error } = await supabase
+      .from('sessions')
+      .update({ is_public: nextIsPublic })
+      .eq('id', sessionId)
+    if (error) {
+      setSessions(prev)
+      alert(`Couldn't update visibility: ${error.message}`)
+    }
+  }
+
   async function handleDelete(sessionId) {
     if (!confirm('Delete this session?')) return
     await supabase.from('sessions').delete().eq('id', sessionId)
@@ -368,7 +385,7 @@ export default function CampAdminSessions() {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-sm">
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                     <span className="text-gray-500">Counselor:</span>
                     {counselors.length === 0 ? (
                       <span className="text-xs text-gray-400">No counselors yet</span>
@@ -384,6 +401,25 @@ export default function CampAdminSessions() {
                         ))}
                       </select>
                     )}
+                    <div className="ml-auto flex items-center gap-2 text-gray-600">
+                      <span>Show on camp page</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={s.is_public !== false}
+                        aria-label="Show on camp page"
+                        onClick={() => handleTogglePublic(s.id, s.is_public === false)}
+                        className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 ${
+                          s.is_public !== false ? 'bg-emerald-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
+                            s.is_public !== false ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Duplicate form — appears inline when the user clicks Duplicate */}
